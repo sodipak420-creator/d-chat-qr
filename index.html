@@ -1,71 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WhatsApp QR & Link Generator</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- QRCode.js Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-</head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4">
-
-  <main class="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl p-6 border border-slate-700 mt-6">
-    <div class="text-center mb-6">
-      <h1 class="text-2xl font-bold text-emerald-400">WhatsApp QR & Link Generator</h1>
-      <p class="text-xs text-slate-400 mt-1">Generate a QR code & direct link for counters, flyers, or profiles</p>
-    </div>
-
-    <!-- Form Inputs -->
-    <div class="space-y-4">
-      <div>
-        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Country Code & Phone Number</label>
-        <div class="flex gap-2">
-          <input id="countryCode" type="text" value="91" class="w-20 px-3 py-2 bg-slate-950 rounded-lg border border-slate-700 text-center font-mono focus:outline-none focus:border-emerald-500" placeholder="91" />
-          <input id="phoneNumber" type="tel" class="flex-1 px-3 py-2 bg-slate-950 rounded-lg border border-slate-700 font-mono focus:outline-none focus:border-emerald-500" placeholder="e.g. 9876543210" />
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Pre-filled Message (Optional)</label>
-        <textarea id="message" rows="2" class="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-emerald-500" placeholder="Hello! Inquiring about..."></textarea>
-      </div>
-
-      <button onclick="generateQR()" class="w-full bg-emerald-500 hover:bg-emerald-600 font-semibold py-2.5 rounded-lg transition-colors text-slate-950">
-        Generate QR & Link
-      </button>
-    </div>
-
-    <!-- Output Section -->
-    <div id="outputSection" class="hidden mt-6 pt-6 border-t border-slate-700 text-center">
-      <div id="qrcode" class="flex justify-center p-4 bg-white rounded-xl mx-auto w-fit"></div>
-      
-      <div class="flex gap-2 mt-4">
-        <button onclick="downloadQR()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2.5 rounded-lg font-medium transition-colors">
-          Download QR (PNG)
-        </button>
-        <button onclick="copyLink()" id="copyBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-xs py-2.5 rounded-lg font-medium transition-colors">
-          Copy Link
-        </button>
-      </div>
-    </div>
-
-    <!-- Adsterra Ad Unit -->
-    <div class="mt-6 pt-4 border-t border-slate-700/60 flex flex-col items-center justify-center min-h-[60px]">
-      <script type="text/javascript">
-        atOptions = {
-          'key' : 'f31ea1eeab21f64f3d2fbf01d84871c8',
-          'format' : 'iframe',
-          'height' : 50,
-          'width' : 320,
-          'params' : {}
-        };
-      </script>
-      <script type="text/javascript" src="//www.highperformanceformat.com/f31ea1eeab21f64f3d2fbf01d84871c8/invoke.js"></script>
-    </div>
-  </main>
-
   <script>
     let qrInstance = null;
     let generatedUrl = "";
@@ -87,8 +19,8 @@
 
       qrInstance = new QRCode(qrContainer, {
         text: generatedUrl,
-        width: 180,
-        height: 180,
+        width: 200,
+        height: 200,
         colorDark: "#000000",
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.H
@@ -113,13 +45,21 @@
         return;
       }
 
-      const link = document.createElement("a");
-      link.download = "whatsapp-qr.png";
-      link.href = canvas.toDataURL("image/png");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Convert canvas directly to a binary Blob
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = "whatsapp-qr.png";
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up memory
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 150);
+      }, "image/png");
     }
   </script>
-</body>
-</html>
