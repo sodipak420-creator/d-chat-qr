@@ -3,20 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WhatsApp QR & Link Generator</title>
+  <title>D-Chat QR: WhatsApp & UPI Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Direct Canvas QR Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4">
 
-  <main class="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl p-6 border border-slate-700 mt-6">
-    <div class="text-center mb-6">
-      <h1 class="text-2xl font-bold text-emerald-400">WhatsApp QR & Link Generator</h1>
-      <p class="text-xs text-slate-400 mt-1">Generate a QR code & direct link for counters, flyers, or profiles</p>
+  <main class="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl p-6 border border-slate-700 mt-4 mb-8">
+    <!-- Header -->
+    <div class="text-center mb-5">
+      <h1 class="text-2xl font-bold text-emerald-400" id="mainHeading">D-Chat & Pay QR</h1>
+      <p class="text-xs text-slate-400 mt-1">Generate free instant WhatsApp & UPI payment QR codes</p>
     </div>
 
-    <div class="space-y-4">
+    <!-- Toggle Selector -->
+    <div class="grid grid-cols-2 bg-slate-950 p-1 rounded-xl border border-slate-700 mb-6">
+      <button id="tabWa" onclick="switchMode('wa')" class="py-2 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-950 transition-all">
+        WhatsApp QR
+      </button>
+      <button id="tabUpi" onclick="switchMode('upi')" class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all">
+        UPI / Paytm QR
+      </button>
+    </div>
+
+    <!-- WhatsApp Form -->
+    <div id="waForm" class="space-y-4">
       <div>
         <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Country Code & Phone Number</label>
         <div class="flex gap-2">
@@ -27,11 +38,34 @@
 
       <div>
         <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Pre-filled Message (Optional)</label>
-        <textarea id="message" rows="2" class="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-emerald-500" placeholder="Hello! Inquiring about..."></textarea>
+        <textarea id="message" rows="2" class="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-emerald-500" placeholder="Hello! I want to inquire about..."></textarea>
       </div>
 
-      <button onclick="generateQR()" class="w-full bg-emerald-500 hover:bg-emerald-600 font-semibold py-2.5 rounded-lg transition-colors text-slate-950">
-        Generate QR & Link
+      <button onclick="generateWhatsAppQR()" class="w-full bg-emerald-500 hover:bg-emerald-600 font-semibold py-2.5 rounded-lg transition-colors text-slate-950">
+        Generate WhatsApp QR
+      </button>
+    </div>
+
+    <!-- UPI Form -->
+    <div id="upiForm" class="hidden space-y-4">
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">UPI ID or Phone Number</label>
+        <input id="upiId" type="text" class="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-700 font-mono focus:outline-none focus:border-sky-500" placeholder="e.g. 9876543210@paytm or name@upi" />
+        <p class="text-[10px] text-slate-500 mt-1">Entering a 10-digit mobile number automatically defaults to @paytm</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Payee / Merchant Name</label>
+        <input id="payeeName" type="text" class="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-700 focus:outline-none focus:border-sky-500" placeholder="e.g. D-Chat Store" />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Amount (₹) (Optional)</label>
+        <input id="amount" type="number" step="0.01" class="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-700 font-mono focus:outline-none focus:border-sky-500" placeholder="Leave blank for customer to enter" />
+      </div>
+
+      <button onclick="generateUPIQR()" class="w-full bg-sky-500 hover:bg-sky-600 font-semibold py-2.5 rounded-lg transition-colors text-slate-950">
+        Generate Payment QR
       </button>
     </div>
 
@@ -40,37 +74,70 @@
       <div class="flex justify-center p-4 bg-white rounded-xl mx-auto w-fit">
         <canvas id="qrCanvas"></canvas>
       </div>
+      <p id="qrNotice" class="text-xs text-slate-400 mt-2"></p>
       
       <div class="flex gap-2 mt-4">
         <button onclick="downloadQR()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2.5 rounded-lg font-medium transition-colors">
           Download QR (PNG)
         </button>
-        <button onclick="copyLink()" id="copyBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-xs py-2.5 rounded-lg font-medium transition-colors">
+        <button onclick="copyPayloadLink()" id="copyBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-xs py-2.5 rounded-lg font-medium transition-colors">
           Copy Link
         </button>
       </div>
     </div>
 
-    <!-- Ad Unit -->
-    <div class="mt-6 pt-4 border-t border-slate-700/60 flex flex-col items-center justify-center min-h-[60px]">
-      <script type="text/javascript">
-        atOptions = {
-          'key' : 'f31ea1eeab21f64f3d2fbf01d84871c8',
-          'format' : 'iframe',
-          'height' : 50,
-          'width' : 320,
-          'params' : {}
-        };
-      </script>
-      <script type="text/javascript" src="//www.highperformanceformat.com/f31ea1eeab21f64f3d2fbf01d84871c8/invoke.js"></script>
+    <!-- Adsterra Banner Slot -->
+    <div class="mt-6 pt-4 border-t border-slate-700/60 flex justify-center">
+      <iframe srcdoc="<!DOCTYPE html><html><head></head><body style='margin:0;display:flex;justify-content:center;'><script type='text/javascript'>atOptions={'key':'f31ea1eeab21f64f3d2fbf01d84871c8','format':'iframe','height':50,'width':320,'params':{}};</script><script type='text/javascript' src='https://www.highperformanceformat.com/f31ea1eeab21f64f3d2fbf01d84871c8/invoke.js'></script></body></html>" width="320" height="50" style="border:none; overflow:hidden;" scrolling="no" sandbox="allow-scripts allow-same-origin allow-popups allow-top-navigation"></iframe>
     </div>
   </main>
 
   <script>
-    let generatedUrl = "";
-    let qr = null;
+    let activeMode = 'wa';
+    let currentPayload = "";
+    let downloadFilename = "whatsapp-qr.png";
 
-    function generateQR() {
+    function switchMode(mode) {
+      activeMode = mode;
+      const tabWa = document.getElementById('tabWa');
+      const tabUpi = document.getElementById('tabUpi');
+      const waForm = document.getElementById('waForm');
+      const upiForm = document.getElementById('upiForm');
+      const copyBtn = document.getElementById('copyBtn');
+
+      document.getElementById('outputSection').classList.add('hidden');
+
+      if (mode === 'wa') {
+        tabWa.className = "py-2 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-950 transition-all";
+        tabUpi.className = "py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all";
+        waForm.classList.remove('hidden');
+        upiForm.classList.add('hidden');
+        copyBtn.className = "flex-1 bg-emerald-600 hover:bg-emerald-700 text-xs py-2.5 rounded-lg font-medium transition-colors";
+      } else {
+        tabUpi.className = "py-2 text-xs font-semibold rounded-lg bg-sky-500 text-slate-950 transition-all";
+        tabWa.className = "py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all";
+        upiForm.classList.remove('hidden');
+        waForm.classList.add('hidden');
+        copyBtn.className = "flex-1 bg-sky-600 hover:bg-sky-700 text-xs py-2.5 rounded-lg font-medium transition-colors";
+      }
+    }
+
+    function renderQR(data, filename, notice) {
+      currentPayload = data;
+      downloadFilename = filename;
+
+      new QRious({
+        element: document.getElementById("qrCanvas"),
+        value: data,
+        size: 220,
+        level: "H"
+      });
+
+      document.getElementById("qrNotice").innerText = notice;
+      document.getElementById("outputSection").classList.remove("hidden");
+    }
+
+    function generateWhatsAppQR() {
       const code = document.getElementById("countryCode").value.trim().replace("+", "");
       const phone = document.getElementById("phoneNumber").value.trim();
       const msg = encodeURIComponent(document.getElementById("message").value.trim());
@@ -80,35 +147,72 @@
         return;
       }
 
-      generatedUrl = `https://wa.me/${code}${phone}` + (msg ? `?text=${msg}` : "");
-
-      qr = new QRious({
-        element: document.getElementById("qrCanvas"),
-        value: generatedUrl,
-        size: 200,
-        level: "H"
-      });
-
-      document.getElementById("outputSection").classList.remove("hidden");
+      const url = `https://wa.me/${code}${phone}` + (msg ? `?text=${msg}` : "");
+      renderQR(url, "whatsapp-qr.png", "Scan to open WhatsApp chat");
     }
 
-    function copyLink() {
-      if (!generatedUrl) return;
-      navigator.clipboard.writeText(generatedUrl).then(() => {
-        const btn = document.getElementById("copyBtn");
-        btn.innerText = "Copied! ✅";
-        setTimeout(() => (btn.innerText = "Copy Link"), 2000);
-      });
+    function generateUPIQR() {
+      let upi = document.getElementById("upiId").value.trim();
+      const name = encodeURIComponent(document.getElementById("payeeName").value.trim() || "Merchant");
+      const amount = document.getElementById("amount").value.trim();
+
+      if (!upi) {
+        alert("Please enter a UPI ID or Phone Number.");
+        return;
+      }
+
+      if (/^\d{10}$/.test(upi)) {
+        upi = `${upi}@paytm`;
+      }
+
+      let upiUrl = `upi://pay?pa=${encodeURIComponent(upi)}&pn=${name}&cu=INR`;
+      if (amount && Number(amount) > 0) {
+        upiUrl += `&am=${encodeURIComponent(amount)}`;
+      }
+
+      renderQR(upiUrl, "upi-payment-qr.png", "Scan with Paytm, PhonePe, GPay, or BHIM");
+    }
+
+    function copyPayloadLink() {
+      if (!currentPayload) return;
+      const btn = document.getElementById("copyBtn");
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(currentPayload).then(() => showCopied(btn));
+      } else {
+        const tempInput = document.createElement("input");
+        tempInput.value = currentPayload;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        showCopied(btn);
+      }
+    }
+
+    function showCopied(btn) {
+      btn.innerText = "Copied! ✅";
+      setTimeout(() => (btn.innerText = "Copy Link"), 2000);
     }
 
     function downloadQR() {
       const canvas = document.getElementById("qrCanvas");
       if (!canvas) return;
 
-      const link = document.createElement("a");
-      link.download = "whatsapp-qr.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = downloadFilename;
+        link.href = blobUrl;
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 150);
+      }, "image/png");
     }
   </script>
 </body>
